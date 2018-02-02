@@ -1,4 +1,4 @@
-/* nvd3 version 1.8.3-dev (https://github.com/novus/nvd3) 2016-05-26 */
+/* nvd3 version 1.8.3-dev (https://github.com/novus/nvd3) 2018-02-02 */
 (function(){
 
 // set up main nv object
@@ -9920,11 +9920,13 @@ nv.models.multiChart = function() {
                         return d == null ? "N/A" : yAxis.tickFormat()(d);
                     };
 
+                    var defaultHeaderFormatter = function(d, i) {
+                        return xAxis.tickFormat()(d, i);
+                    };
+
                     interactiveLayer.tooltip
                     .chartContainer(chart.container.parentNode)
-                    .headerFormatter(function(d, i) {
-                        return xAxis.tickFormat()(d, i);
-                    })
+                    .headerFormatter(interactiveLayer.tooltip.headerFormatter() || defaultHeaderFormatter)
                     .valueFormatter(interactiveLayer.tooltip.valueFormatter() || defaultValueFormatter)
                     .data({
                         value: chart.x()( singlePoint,pointIndex ),
