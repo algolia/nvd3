@@ -211,10 +211,31 @@ nv.models.multiChart = function() {
                 return a.map(function(aVal,i){return {x: aVal.x, y: aVal.y + b[i].y}})
             }).concat([{x:0, y:0}]) : [];
 
-            yScale1 .domain(yDomain1 || d3.extent(d3.merge(series1).concat(extraValue1), function(d) { return d.y } ))
+            // stackedBars1 & stackedBars2 were patched in. Takes into account the fact that bars can be stacked
+            // when computing the domain. Assumes all positive values (ie no negative bars)
+            var stackedBars1 = chart.bars1.stacked() && dataBars1.length ? dataBars1[0].values.map(function(value, i) {
+              var x = getX(value);
+              return dataBars1.reduce(function(acc, serie) {
+                if(!serie.disabled) {
+                  acc.y = acc.y + getY(serie.values[i]);
+                }
+                return acc;
+              }, {x: x, y: 0});
+            }) : [];
+            var stackedBars2 = chart.bars2.stacked() && dataBars2.length ? dataBars2[0].values.map(function(value, i) {
+              var x = getX(value);
+              return dataBars2.reduce(function(acc, serie) {
+                if(!serie.disabled) {
+                  acc.y = acc.y + getY(serie.values[i]);
+                }
+                return acc;
+              }, {x: x, y: 0});
+            }) : [];
+
+            yScale1 .domain(yDomain1 || d3.extent(d3.merge(series1).concat(extraValue1, stackedBars1), function(d) { return d.y } ))
                 .range([0, availableHeight]);
 
-            yScale2 .domain(yDomain2 || d3.extent(d3.merge(series2).concat(extraValue2), function(d) { return d.y } ))
+            yScale2 .domain(yDomain2 || d3.extent(d3.merge(series2).concat(extraValue2, stackedBars2), function(d) { return d.y } ))
                 .range([0, availableHeight]);
 
             lines1.yDomain(yScale1.domain());
