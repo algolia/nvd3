@@ -1,4 +1,4 @@
-/* nvd3 version 1.8.3-dev (https://github.com/novus/nvd3) 2018-02-02 */
+/* nvd3 version 1.8.3-dev (https://github.com/novus/nvd3) 2018-02-26 */
 (function(){
 
 // set up main nv object
@@ -9707,10 +9707,31 @@ nv.models.multiChart = function() {
                 return a.map(function(aVal,i){return {x: aVal.x, y: aVal.y + b[i].y}})
             }).concat([{x:0, y:0}]) : [];
 
-            yScale1 .domain(yDomain1 || d3.extent(d3.merge(series1).concat(extraValue1), function(d) { return d.y } ))
+            // stackedBars1 & stackedBars2 were patched in. Takes into account the fact that bars can be stacked
+            // when computing the domain. Assumes all positive values (ie no negative bars)
+            var stackedBars1 = chart.bars1.stacked() && dataBars1.length ? dataBars1[0].values.map(function(value, i) {
+              var x = getX(value);
+              return dataBars1.reduce(function(acc, serie) {
+                if(!serie.disabled) {
+                  acc.y = acc.y + getY(serie.values[i]);
+                }
+                return acc;
+              }, {x: x, y: 0});
+            }) : [];
+            var stackedBars2 = chart.bars2.stacked() && dataBars2.length ? dataBars2[0].values.map(function(value, i) {
+              var x = getX(value);
+              return dataBars2.reduce(function(acc, serie) {
+                if(!serie.disabled) {
+                  acc.y = acc.y + getY(serie.values[i]);
+                }
+                return acc;
+              }, {x: x, y: 0});
+            }) : [];
+
+            yScale1 .domain(yDomain1 || d3.extent(d3.merge(series1).concat(extraValue1, stackedBars1), function(d) { return d.y } ))
                 .range([0, availableHeight]);
 
-            yScale2 .domain(yDomain2 || d3.extent(d3.merge(series2).concat(extraValue2), function(d) { return d.y } ))
+            yScale2 .domain(yDomain2 || d3.extent(d3.merge(series2).concat(extraValue2, stackedBars2), function(d) { return d.y } ))
                 .range([0, availableHeight]);
 
             lines1.yDomain(yScale1.domain());
@@ -9906,12 +9927,26 @@ nv.models.multiChart = function() {
                         if (point === undefined) return;
                         if (singlePoint === undefined) singlePoint = point;
                         if (pointXLocation === undefined) pointXLocation = x(chart.x()(point,pointIndex));
+
+                        var highlight = false;
+
+                        if (series.type === 'bar') {
+                            var isStacked = !!point.y1;
+                            var yValue = chart.yAxis1.scale().invert(e.mouseY);
+                            if (isStacked && yValue >= point.y0 && yValue < point.y1) {
+                                highlight = true;
+                            } else if(!isStacked && yValue >= 0 && yValue < point.y) {
+                                highlight = true;
+                            }
+                        }
+
                         allData.push({
                             key: series.key,
                             value: pointYValue,
                             color: color(series,series.seriesIndex),
                             data: point,
-                            yAxis: series.yAxis == 2 ? yAxis2 : yAxis1
+                            yAxis: series.yAxis == 2 ? yAxis2 : yAxis1,
+                            highlight: highlight
                         });
                     });
 

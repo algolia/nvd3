@@ -431,12 +431,26 @@ nv.models.multiChart = function() {
                         if (point === undefined) return;
                         if (singlePoint === undefined) singlePoint = point;
                         if (pointXLocation === undefined) pointXLocation = x(chart.x()(point,pointIndex));
+
+                        var highlight = false;
+
+                        if (series.type === 'bar') {
+                            var isStacked = !!point.y1;
+                            var yValue = chart.yAxis1.scale().invert(e.mouseY);
+                            if (isStacked && yValue >= point.y0 && yValue < point.y1) {
+                                highlight = true;
+                            } else if(!isStacked && yValue >= 0 && yValue < point.y) {
+                                highlight = true;
+                            }
+                        }
+
                         allData.push({
                             key: series.key,
                             value: pointYValue,
                             color: color(series,series.seriesIndex),
                             data: point,
-                            yAxis: series.yAxis == 2 ? yAxis2 : yAxis1
+                            yAxis: series.yAxis == 2 ? yAxis2 : yAxis1,
+                            highlight: highlight
                         });
                     });
 
